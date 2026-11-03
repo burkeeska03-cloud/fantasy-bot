@@ -14,16 +14,6 @@ standard-throughput API calls have no additional charge. AWS can change pricing
 and other account resources can still create charges, so set up a billing alert
 before deployment.
 
-## Local check
-
-```bash
-cp .env.example .env
-open -e .env
-python3 fantasy_bot.py
-```
-
-Use `python3 fantasy_bot.py --post` only when you want to send a manual test.
-
 ## Create the protected SSM parameter
 
 In the AWS Systems Manager console, open **Parameter Store** and create a
