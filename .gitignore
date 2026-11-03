@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.py[cod]
+.DS_Store
+fantasy_bot.zip
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
