@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Scheduled ESPN Fantasy Football to GroupMe bot
+
+Parameters:
+  EspnLeagueId:
+    Type: String
+    Description: ESPN Fantasy league ID
+  EspnSeason:
+    Type: String
+    Default: '2026'
+    Description: ESPN Fantasy season
+  EspnSwid:
+    Type: String
+    NoEcho: true
+    Description: ESPN SWID cookie, including braces
+  EspnS2:
+    Type: String
+    NoEcho: true
+    Description: ESPN espn_s2 cookie
+  GroupMeBotId:
+    Type: String
+    NoEcho: true
+    Description: GroupMe bot ID
+  ScheduleExpression:
+    Type: String
+    Default: rate(1 hour)
+    Description: EventBridge schedule expression; rate(1 hour) posts every hour.
+
+Resources:
+  FantasyBot:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: fantasy_bot.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 30
+      Environment:
+        Variables:
+          ESPN_LEAGUE_ID: !Ref EspnLeagueId
+          ESPN_SEASON: !Ref EspnSeason
+          ESPN_SWID: !Ref EspnSwid
+          ESPN_S2: !Ref EspnS2
+          GROUPME_BOT_ID: !Ref GroupMeBotId
+      Events:
+        HourlyUpdate:
+          Type: Schedule
+          Properties:
+            Schedule: !Ref ScheduleExpression
+            Name: fantasy-groupme-hourly
+            Description: Posts the current ESPN fantasy matchup report to GroupMe.
+            Enabled: true
+
+Outputs:
+  FunctionName:
+    Description: Lambda function name
+    Value: !Ref FantasyBot
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt FantasyBot.Arn
