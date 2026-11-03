@@ -36,29 +36,31 @@ parameter with these settings:
   ```
 
 Do not use an Advanced parameter or enable higher throughput; either can incur
-charges. Do not put this JSON in the repository, a shell command, or a SAM
-parameter override.
+charges. Do not put this JSON in the repository, a shell command, or Terraform
+variables.
 
-## AWS deployment
+## Terraform deployment
 
-1. Install the [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) and configure the AWS CLI with an AWS account that can create Lambda, IAM, CloudFormation, and EventBridge resources.
-2. In the repository, run:
+1. Install [Terraform](https://developer.hashicorp.com/terraform/install) and configure the AWS CLI with an AWS account that can create Lambda, IAM, CloudWatch, and EventBridge resources.
+2. In the repository, initialize and preview the Terraform configuration:
 
    ```bash
-   sam build
-   sam deploy --guided
+   terraform init
+   terraform plan -var='ssm_parameter_name=/fantasy-groupme-bot/config'
    ```
 
-3. During the guided prompts:
+3. Apply the reviewed plan:
 
-   - Use a unique stack name, such as `fantasy-groupme-bot`.
-   - Enter the **SSM parameter name** you created, not the secret values.
-   - Allow SAM to create IAM roles.
-   - Keep the default `rate(1 hour)` schedule, or enter another valid EventBridge `rate(...)` or `cron(...)` expression.
+   ```bash
+   terraform apply -var='ssm_parameter_name=/fantasy-groupme-bot/config'
+   ```
 
-The first deployment creates the Lambda function and its EventBridge schedule.
-The function posts automatically from then on. View run logs in CloudWatch Logs
-under `/aws/lambda/<function name>`.
+Terraform creates the Lambda function, least-privilege IAM role, seven-day log
+retention, and EventBridge schedule. The function posts automatically from then
+on. View run logs in CloudWatch Logs under `/aws/lambda/fantasy-groupme-bot`.
+
+To change the schedule, add a second variable when planning and applying—for
+example, `-var='schedule_expression=rate(2 hours)'`.
 
 ## Cost safety
 
@@ -71,8 +73,9 @@ never enter the repository or Lambda environment configuration.
 ## Remove the AWS resources
 
 ```bash
-aws cloudformation delete-stack --stack-name fantasy-groupme-bot
+terraform destroy -var='ssm_parameter_name=/fantasy-groupme-bot/config'
 ```
 
-Replace the stack name with the one you chose. Verify deletion in the
-CloudFormation console before closing the AWS account.
+Use the same parameter name and Region used for deployment. This does not delete
+the manually created SSM parameter, so delete it separately if it is no longer
+needed.
