@@ -18,6 +18,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
+SECRET_KEYS = {"ESPN_LEAGUE_ID", "ESPN_SEASON", "ESPN_SWID", "ESPN_S2", "GROUPME_BOT_ID"}
+_ssm_parameter_loaded = False
 
 
 def load_env(path: Path = ROOT / ".env") -> None:
@@ -37,6 +39,37 @@ def require(name: str) -> str:
     if not value:
         raise ValueError(f"Missing {name}. Add it to .env or Lambda configuration.")
     return value
+
+
+def load_ssm_parameter() -> None:
+    """Load private configuration from one SecureString SSM parameter in Lambda."""
+    global _ssm_parameter_loaded
+    if _ssm_parameter_loaded:
+        return
+
+    parameter_name = os.getenv("SSM_PARAMETER_NAME", "").strip()
+    if not parameter_name:
+        return
+
+    try:
+        import boto3
+
+        response = boto3.client("ssm").get_parameter(
+            Name=parameter_name, WithDecryption=True
+        )
+        values = json.loads(response["Parameter"]["Value"])
+    except (ImportError, KeyError, TypeError, ValueError) as error:
+        raise RuntimeError("Could not load the SSM Parameter Store configuration.") from error
+    except Exception as error:
+        raise RuntimeError("Could not retrieve the SSM Parameter Store configuration.") from error
+
+    if not isinstance(values, dict):
+        raise RuntimeError("The SSM parameter value must be a JSON object.")
+    for key in SECRET_KEYS:
+        value = values.get(key)
+        if value is not None:
+            os.environ.setdefault(key, str(value))
+    _ssm_parameter_loaded = True
 
 
 def espn_league() -> dict:
@@ -133,6 +166,7 @@ def post_groupme(message: str) -> None:
 
 def lambda_handler(event: dict, context: object) -> dict:
     """AWS Lambda entry point: fetch and post one matchup update."""
+    load_ssm_parameter()
     message = matchup_message(espn_league())
     post_groupme(message)
     print(message)

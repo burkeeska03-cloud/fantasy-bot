@@ -3,25 +3,9 @@ Transform: AWS::Serverless-2016-10-31
 Description: Scheduled ESPN Fantasy Football to GroupMe bot
 
 Parameters:
-  EspnLeagueId:
+  SsmParameterName:
     Type: String
-    Description: ESPN Fantasy league ID
-  EspnSeason:
-    Type: String
-    Default: '2026'
-    Description: ESPN Fantasy season
-  EspnSwid:
-    Type: String
-    NoEcho: true
-    Description: ESPN SWID cookie, including braces
-  EspnS2:
-    Type: String
-    NoEcho: true
-    Description: ESPN espn_s2 cookie
-  GroupMeBotId:
-    Type: String
-    NoEcho: true
-    Description: GroupMe bot ID
+    Description: Name of the SecureString SSM parameter holding the JSON configuration.
   ScheduleExpression:
     Type: String
     Default: rate(1 hour)
@@ -40,11 +24,10 @@ Resources:
       Timeout: 30
       Environment:
         Variables:
-          ESPN_LEAGUE_ID: !Ref EspnLeagueId
-          ESPN_SEASON: !Ref EspnSeason
-          ESPN_SWID: !Ref EspnSwid
-          ESPN_S2: !Ref EspnS2
-          GROUPME_BOT_ID: !Ref GroupMeBotId
+          SSM_PARAMETER_NAME: !Ref SsmParameterName
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref SsmParameterName
       Events:
         HourlyUpdate:
           Type: Schedule
